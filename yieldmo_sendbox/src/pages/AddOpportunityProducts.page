@@ -1,0 +1,918 @@
+<apex:page controller="AddOpportunityProductsController" id="THE_PAGE" sidebar="false" action="{!checkOpportunityPriceBook2}">
+    
+    <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <head>
+            <link rel="stylesheet" type="text/css" href="{!URLFOR($Resource.slds_scopped_yieldmo, 'assets/styles/salesforce-lightning-design-system-vf.css')}"/>
+            <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"/>
+            <style>
+                .ui-resizable {
+                    position: relative;
+                }
+                .yieldmo .slds-select[size], .yieldmo .slds-select[multiple] {
+                    height: calc(1.875rem + (1px * 2));
+                }
+
+                .yieldmo .slds-size--1-of-10 {
+                    width: 10%; 
+                }
+                
+            </style>
+        </head>
+        <body>
+            <apex:form id="THE_FORM">
+                <div class="yieldmo">
+
+                    <apex:actionstatus id="loading">
+                        <apex:facet name="start">
+                            <div class="waitingSearchDiv" id="el_loading" style="z-index:1;position: fixed;top:0;background-color: black; height:100%;opacity:0.5;width:100%;">
+                                <div class="slds-grid slds-grid--align-center" style="height:100vh;">
+                                    <div class="slds-align-middle slds-col--padded">
+                                        <center>
+                                            <div class="slds-spinner--medium" aria-hidden="false" role="alert">
+                                                <img src="{!URLFOR($Resource.slds_scopped_yieldmo, '/assets/images/spinners/slds_spinner_brand.gif')}" />
+                                            </div>
+                                        </center>
+                                        <span style="color:white;">Please Wait</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </apex:facet>
+                    </apex:actionstatus>
+
+                    <div class="slds-page-header" role="banner" style="margin: -10px -10px 10px;">
+                        <div class="slds-grid">
+                            <div class="slds-col slds-has-flexi-truncate">
+                                <div class="slds-media slds-no-space slds-grow">
+                                    <div class="slds-media__figure">
+                                        <svg aria-hidden="true" class="slds-icon slds-icon-standard-product">
+                                            <use xlink:href="{!URLFOR($Resource.slds_scopped_yieldmo, '/assets/icons/standard-sprite/svg/symbols.svg#product')}"></use>
+                                        </svg>
+                                    </div>
+                                    <div class="slds-media__body">
+                                        <h1 class="slds-page-header__title slds-m-right--small slds-align-middle slds-truncate" title="Search for Products">Search for Products</h1>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <apex:outputPanel id="error_message_panel">
+                        <apex:outputPanel rendered="{!errorMsg != ''}">
+                            <div class="slds-notify_container" style="position: relative; margin: -10px -10px 10px; width: inherit;z-index: 0;">
+                                <div class="slds-notify slds-notify--alert slds-theme--error slds-theme--alert-texture" role="alert">
+                                    <span class="slds-assistive-text">Error</span>
+                                    <h2>
+                                        <apex:outputText value="{!errorMsg}" escape="false"/>
+                                    </h2>
+                                </div>
+                            </div>
+                        </apex:outputPanel>
+                    </apex:outputPanel>
+                    
+                    <!-- Find Products -->
+                    <apex:outputPanel id="search_panel">
+                        <apex:outputPanel id="product_filter_panel" rendered="{!showSearchPanel}">
+                            <div class="slds-card slds-card--find-products">
+                                <div class="slds-card__header slds-grid" style="padding-top: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #d8dde6;margin-bottom:0;">
+                                    <header class="slds-media slds-media--center slds-has-flexi-truncate">
+                                        <div class="slds-media__figure slds-icon_container">
+                                            <svg aria-hidden="true" class="slds-icon slds-icon-text-default">
+                                                <use xlink:href="{!URLFOR($Resource.slds_scopped_yieldmo, '/assets/icons/utility-sprite/svg/symbols.svg#settings')}"></use>
+                                            </svg>
+                                        </div>
+                                        <div class="slds-media__body slds-truncate">
+                                            <h2>
+                                                <a href="javascript:void(0);" class="slds-text-link--reset">
+                                                    <span class="slds-text-heading--small">Find Products</span>
+                                                </a>
+                                            </h2>
+                                        </div>
+                                    </header>
+                                    <div class="slds-no-flex">
+                                        <apex:commandButton value="Cancel" onclick="returnToOpportunity(); return false;" styleclass="slds-button slds-button--neutral slds-button--small"/>
+                                        <apex:actionFunction name="returnToOpportunity" action="{!cancelAddProduct}" />
+                                    </div>
+                                </div>
+                                <div class="slds-card__body" style="background: white; padding: 10px 15px;">
+                                    <fieldset class="slds-form--compound">
+                                        <div class="slds-form-element__group">
+                                            <div class="slds-form-element__row">
+                                                <div class="slds-p-right--xx-small slds-size--1-of-4">
+                                                    <label class="slds-form-element__label" for="input-01">BY KEYWORD</label>
+                                                    <apex:inputText value="{!keyworkSearchText}" styleClass="slds-input slds-input__keywork-search" /> 
+                                                </div>
+                                                <div class="slds-p-horizontal--xx-small slds-size--3-of-4">
+                                                    <apex:outputPanel id="FIELD_FILTER_PANEL">
+                                                        <div class="slds-form-element__group">
+                                                            
+                                                            <div class="slds-form-element__row">
+                                                                <div class="slds-p-right--xx-small slds-size--1-of-1">
+                                                                    <apex:variable var="index" value="{!1}"/>
+                                                                    <table>
+                                                                        <head>
+                                                                            <tr>
+                                                                                <td class="slds-p-horizontal--xx-small slds-size--2-of-8">
+                                                                                    <div class="slds-truncate">BY FIELD FILTER</div>
+                                                                                </td>
+                                                                                <td class="slds-p-horizontal--xx-small slds-size--2-of-8">
+                                                                                    <div class="slds-truncate"></div>
+                                                                                </td>
+                                                                                <td class="slds-p-horizontal--xx-small slds-size--2-of-8">
+                                                                                    <div class="slds-truncate"></div>
+                                                                                </td>
+                                                                                <td class="slds-p-horizontal--xx-small slds-size--2-of-8">
+
+                                                                                </td>
+                                                                            </tr>
+                                                                        </head>
+                                                                        <tbody>
+                                                                            <apex:repeat id="FIELD_FILTER_REPEAT" value="{!lstFilterWrapper}" var="filterObj">
+                                                                                <tr>
+                                                                                    <td class="slds-p-around--xx-small slds-size--2-of-8">
+                                                                                        <apex:selectList value="{!filterObj.filterByField}" onchange="updateOperator(this, '{!$Component.FieldOpcol}');" id="FieldEntrycol" size="1" multiselect="false" styleClass="slds-select slds-select--fields-options">
+                                                                                           <apex:selectOptions value="{!ProductFieldFiltersOptions}"></apex:selectOptions>
+                                                                                        </apex:selectList>
+                                                                                    </td>
+                                                                                    <td class="slds-p-around--xx-small slds-size--2-of-8">
+                                                                                        <apex:selectList value="{!filterObj.filterByOperator}" id="FieldOpcol" size="1" multiselect="false" styleClass="slds-select slds-select--operator-options">
+                                                                                            <apex:selectOptions value="{!filterObj.FilterOperatorOptions}"></apex:selectOptions>
+                                                                                        </apex:selectList>
+                                                                                    </td>
+                                                                                    <td class="slds-p-around--xx-small slds-size--2-of-8">
+                                                                                        <apex:inputText value="{!filterObj.filterByValue}" styleClass="slds-input slds-filter-input-text"/>
+
+                                                                                    </td>
+                                                                                    <td class="slds-p-horizontal--xx-small slds-size--2-of-8">
+                                                                                        <apex:outputPanel rendered="{!lstFilterWrapper.size == 1 }">
+                                                                                            <apex:commandLink value="More Filters >>" action="{!addMoreFilters}" status="loading" reRender="FIELD_FILTER_PANEL" onComplete="updateOperators();"/>
+                                                                                        </apex:outputPanel>
+                                                                                        <apex:outputPanel rendered="{!AND( lstFilterWrapper.size != 1, index <= 4 ) }">
+                                                                                            <div class="slds-truncate">AND</div>
+                                                                                        </apex:outputPanel>
+
+                                                                                        <apex:outputPanel rendered="{!index == 5 }">
+                                                                                            <apex:commandLink value="Fewer filters <<" status="loading" action="{!setFewFilters}" reRender="FIELD_FILTER_PANEL"/>
+                                                                                        </apex:outputPanel>
+
+                                                                                        <apex:variable var="index" value="{!index+1}"/>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            </apex:repeat>    
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                                <!--<div class="slds-p-horizontal--xx-small slds-size--1-of-3">
+                                                                    <label class="slds-form-element__label" for="input-02">BY FIELD FILTER</label>
+                                                                    
+                                                                </div>
+                                                                <div class="slds-p-horizontal--xx-small slds-size--1-of-3">
+                                                                    <label class="slds-form-element__label" for="input-02">OPERATOR TYPE</label>
+                                                                    <apex:selectList value="{!filterObj.filterByOperator}" size="1" multiselect="false" styleClass="slds-select">
+                                                                        <apex:selectOptions value="{!ProductFieldFiltersOptions}"></apex:selectOptions>
+                                                                    </apex:selectList>
+                                                                </div>
+                                                                <div class="slds-p-left--xx-small slds-size--1-of-3">
+                                                                    <label class="slds-form-element__label" for="input-02">FIELD VALUE</label>
+                                                                    <apex:inputText value="{!filterObj.filterByValue}" styleClass="slds-input"/>
+                                                                </div>-->
+                                                            </div>
+                                                        </div>
+                                                    </apex:outputPanel>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                    
+                                    <apex:commandButton value="Search" action="{!searchProduct2}" onclick="if( $('.slds-input__keywork-search').val() != '' && $('.slds-input__keywork-search').val().trim().length < 2 ){ alert('Sorry, but you must supply a search string of at least 2 characters or leave the field empty to search for all.'); return false; }" id="search_products" status="loading" reRender="error_message_panel, Product_Table_Panel, buttons_panel, select_product_button_panel, numberofrecords_panel, numberofpages_panel" styleClass="slds-button slds-button--neutral slds-button__search_products"/> 
+                                </div>
+                            </div>
+                        </apex:outputPanel>
+
+                        <apex:outputPanel id="Product_Result_Container" layout="block" styleClass="slds-grid">
+                            <apex:outputPanel layout="block" styleClass="{!IF( AND( !ISNULL(lstOLIs), lstOLIs.size != 0, showSearchPanel ), 'slds-size--5-of-12', 'slds-size--1-of-1')} {!IF( showSaveAndDone, 'slds-hide', '')}">
+                                <apex:outputPanel id="product_result_panel" rendered="{!showSearchPanel}">
+                                    <!-- Search Product Result Section -->
+                                    <div class="slds-card slds-card--products-result  slds-m-vertical--small">
+                                        <div class="slds-card__header slds-grid" style="padding-top: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #d8dde6;margin-bottom:0;">
+                                            <header class="slds-media slds-media--center slds-has-flexi-truncate">
+                                                <div class="slds-media__figure slds-icon_container">
+                                                    <svg aria-hidden="true" class="slds-icon slds-icon-text-default">
+                                                        <use xlink:href="{!URLFOR($Resource.slds_scopped_yieldmo, '/assets/icons/utility-sprite/svg/symbols.svg#settings')}"></use>
+                                                    </svg>
+                                                </div>
+                                                <div class="slds-media__body slds-truncate">
+                                                    <h2>
+                                                        <a href="javascript:void(0);" class="slds-text-link--reset">
+                                                            <span class="slds-text-heading--medium">Products</span>
+                                                        </a>
+                                                    </h2>
+                                                </div>
+                                                <div class="slds-no-flex">
+                                                    <apex:outputPanel id="select_product_button_panel">
+                                                        <apex:commandButton value="Select" action="{!createOpportunityLineItems}" status="loading" reRender="error_message_panel, Product_Result_Container" styleclass="slds-button slds-button--neutral slds-button--small" onComplete="init();" disabled="{!OR( ISNULL(lstMatchedProducts), lstMatchedProducts.size == 0)}"/>
+                                                    </apex:outputPanel>
+                                                </div>
+                                            </header>
+                                        </div>
+                                        <div class="slds-card__body" style="background: white;overflow: auto;">
+                                            <apex:outputPanel id="Product_Table_Panel">
+                                                <apex:outputPanel rendered="{!OR( ISNULL(lstMatchedProducts), lstMatchedProducts.size == 0)}">
+                                                    <div class="slds-notify_container" style="position: initial;">
+                                                        <div class="slds-notify slds-notify--alert slds-theme--alert-texture" role="alert">
+                                                            <span class="slds-assistive-text">Info</span>
+                                                            <h2>No records to display.</h2>
+                                                        </div>
+                                                    </div>
+                                                </apex:outputPanel>
+
+                                                <apex:outputPanel id="Product_Table_body" rendered="{!AND( !ISNULL(lstMatchedProducts), lstMatchedProducts.size != 0)}">
+
+                                                    <script>
+                                                    //alert('Product Rerendered.');
+                                                    </script>
+
+                                                    <table class="slds-table slds-table--bordered slds-table--fixed-layout slds-table--striped" style="border: 1px solid #d8dde6;">
+                                                        <thead>
+                                                            <tr class="slds-text-title--caps">
+                                                                <th class="slds-cell-shrink" scope="col">
+                                                                    <label class="slds-checkbox">
+                                                                        <input type="checkbox" name="options" checked="" class="slds-select--all-product" />
+                                                                        <span class="slds-checkbox--faux"></span>
+                                                                        <span class="slds-assistive-text">Select All</span>
+                                                                    </label>
+                                                                </th>
+                                                                
+                                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'Product2.Name', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'Product2.Name', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-sort="ascending" aria-label="Product Name">
+                                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderProducts( 'Product2.Name', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                                        <span class="slds-assistive-text">Sort </span>
+                                                                        <span class="slds-truncate" title="Product Name">Product Name</span>
+                                                                        
+                                                                        <apex:outputPanel rendered="{!sortByField == 'Product2.Name'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                                        </apex:outputPanel>
+                                                                        <apex:outputPanel rendered="{!sortByField != 'Product2.Name'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                                        </apex:outputPanel>
+
+                                                                        
+                                                                    </apex:outputLink>
+                                                                </th>
+                                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'Product2.ProductCode', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'Product2.ProductCode', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="Product Code" style="width: 150px;">
+                                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderProducts( 'Product2.ProductCode', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                                        <span class="slds-assistive-text">Sort </span>
+                                                                        <span class="slds-truncate" title="Product Code">Product Code</span>
+                                                                        
+                                                                        <apex:outputPanel rendered="{!sortByField == 'Product2.ProductCode'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                                        </apex:outputPanel>
+                                                                        <apex:outputPanel rendered="{!sortByField != 'Product2.ProductCode'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                                        </apex:outputPanel>
+                                                                        
+                                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                                    </apex:outputLink>
+                                                                </th>
+                                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'UnitPrice', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'UnitPrice', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="List Price" style="width: 120px;">
+                                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderProducts( 'UnitPrice', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                                        <span class="slds-assistive-text">Sort </span>
+                                                                        <span class="slds-truncate" title="List Price">List Price</span>
+                                                                        
+                                                                        <apex:outputPanel rendered="{!sortByField == 'UnitPrice'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                                        </apex:outputPanel>
+                                                                        <apex:outputPanel rendered="{!sortByField != 'UnitPrice'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                                        </apex:outputPanel>
+                                                                        
+                                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                                    </apex:outputLink>
+                                                                </th>
+                                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'Product2.Family', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'Product2.Family', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="Close Date" style="width: 150px;">
+                                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderProducts( 'Product2.Family', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                                        <span class="slds-assistive-text">Sort </span>
+                                                                        <span class="slds-truncate" title="Product Family">Product Family</span>
+                                                                        
+                                                                        <apex:outputPanel rendered="{!sortByField == 'Product2.Family'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                                        </apex:outputPanel>
+                                                                        <apex:outputPanel rendered="{!sortByField != 'Product2.Family'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                                        </apex:outputPanel>
+                                                                        
+                                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                                    </apex:outputLink>
+                                                                </th>
+                                                                <!--<th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'Product2.Description', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'Product2.Description', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="IO Campaign Start Date">
+                                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderProducts( 'Product2.Description', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                                        <span class="slds-assistive-text">Sort </span>
+                                                                        <span class="slds-truncate" title="Product Description">Product Description</span>
+                                                                        
+                                                                        <apex:outputPanel rendered="{!sortByField == 'Product2.Description'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                                        </apex:outputPanel>
+                                                                        <apex:outputPanel rendered="{!sortByField != 'Product2.Description'}" layout="none">
+                                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                                        </apex:outputPanel>
+                                                                        
+                                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                                    </apex:outputLink>
+                                                                </th>-->
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <apex:repeat value="{!lstMatchedProducts}" var="pbeWrap">
+                                                                <tr class="slds-hint-parent">
+                                                                    <th role="gridcell" class="slds-cell-shrink">
+                                                                        <apex:outputLabel styleclass="slds-checkbox">
+                                                                            <apex:inputCheckbox value="{!pbeWrap.isSelected}" styleClass="slds-select--product" disabled="{!OR(!pbeWrap.pbeObj.Product2.CanUseQuantitySchedule, !pbeWrap.pbeObj.Product2.CanUseRevenueSchedule)}"/>
+                                                                            <apex:outputPanel styleClass="slds-checkbox--faux"  title="{!IF( OR(pbeWrap.pbeObj.Product2.CanUseQuantitySchedule, pbeWrap.pbeObj.Product2.CanUseRevenueSchedule), '', 'Quantity Or Revenue Scheduling is not Enabled for this Product.')}"/>
+                                                                            <span class="slds-assistive-text">Select row</span>
+                                                                        </apex:outputLabel>
+                                                                    </th>
+                                                                    <th scope="row" data-label="Product Name">
+                                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                                            <apex:outputLink value="/{!pbeWrap.pbeObj.Product2Id}" target="_blank">
+                                                                                <apex:outputField value="{!pbeWrap.pbeObj.Product2.Name}" title="{!pbeWrap.pbeObj.Product2.Name}"/>
+                                                                            </apex:outputLink>
+                                                                        </apex:outputPanel>
+                                                                    </th>
+                                                                    <th scope="row" data-label="Objective">
+                                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                                            <apex:outputField value="{!pbeWrap.pbeObj.Product2.Objective__c}"/>
+                                                                        </apex:outputPanel>
+                                                                    </th>
+                                                                    <th scope="row" data-label="List Price">
+                                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                                            <apex:outputField value="{!pbeWrap.pbeObj.UnitPrice}"/>
+                                                                        </apex:outputPanel>
+                                                                    </th>
+                                                                    <th scope="row" data-label="Product Family">
+                                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                                            <apex:outputField value="{!pbeWrap.pbeObj.Product2.Family}"/>
+                                                                        </apex:outputPanel>
+                                                                    </th>
+                                                                    <!--<th scope="row" data-label="Product Description">
+                                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                                            <apex:outputField value="{!pbeWrap.pbeObj.Product2.Description}"/>
+                                                                        </apex:outputPanel>
+                                                                    </th>-->
+                                                                </tr>
+                                                            </apex:repeat>
+                                                        </tbody>
+                                                    </table>
+                                                </apex:outputPanel>
+                                            </apex:outputPanel>
+                                        </div>
+                                        <div class="slds-card__footer" style="text-align: center;">
+                                            <apex:outputPanel id="numberofrecords_panel"> 
+                                                <span class="slds-float--left">
+                                                    <apex:outputText value="{!CurrentRecordCount}" rendered="{!AND( !ISNULL(lstMatchedProducts), lstMatchedProducts.size != 0)}"/>
+                                                </span>
+                                            </apex:outputPanel>
+
+                                            <apex:outputPanel id="buttons_panel">
+                                                <apex:commandButton action="{!first}" value="First" reRender="Product_Table_Panel, buttons_panel, numberofrecords_panel, numberofpages_panel" title="First Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasPrevious }" status="loading" oncomplete="init();"></apex:commandButton>
+                                                <apex:commandButton action="{!previous}" value="Previous" reRender="Product_Table_Panel, buttons_panel, numberofrecords_panel, numberofpages_panel" title="Previous Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasPrevious}" status="loading" oncomplete="init();"></apex:commandButton>
+                                                <apex:commandButton action="{!next}" value="Next" reRender="Product_Table_Panel, buttons_panel, numberofrecords_panel, numberofpages_panel" title="Next Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasNext}" status="loading" oncomplete="init();"></apex:commandButton>
+                                                <apex:commandButton action="{!last}" value="Last" reRender="Product_Table_Panel, buttons_panel, numberofrecords_panel, numberofpages_panel" title="Last Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasNext}" status="loading" oncomplete="init();"></apex:commandButton>
+                                            </apex:outputPanel>
+
+                                            <apex:outputPanel id="numberofpages_panel" >
+                                                <span class="slds-float--right">
+                                                    <apex:outputText value="Page {!pageNumber} of {!NumberOfPages}" rendered="{!AND( !ISNULL(lstMatchedProducts), lstMatchedProducts.size != 0)}"/>
+                                                </span>
+                                            </apex:outputPanel>
+                                        </div>
+                                    </div>
+                                </apex:outputPanel>
+                            </apex:outputPanel>
+                            <apex:outputPanel layout="block" styleClass="{!IF(AND( !ISNULL(lstOLIs), lstOLIs.size != 0, showSaveAndDone ), 'slds-size--1-of-1', 'slds-size--7-of-12')}" rendered="{!AND( !ISNULL(lstOLIs), lstOLIs.size != 0 ) }">
+                                <apex:outputPanel id="oli_panel">
+                                    <script>
+                                        //alert('Product Rerendered.');
+                                    </script>
+
+                                    <apex:outputPanel rendered="{!AND( !ISNULL(lstOLIs), lstOLIs.size != 0 ) }" >
+                                        
+                                        <div class="slds-card {!IF( !showSaveAndDone, 'slds-m-left--small', '')} slds-m-vertical--small">
+                                            <div class="slds-card__header slds-grid" style="display:block;text-align: center;">
+                                                <header class="slds-media slds-media--center slds-has-flexi-truncate">
+                                                    <div class="slds-media__body slds-truncate" style="display: inline-block;float: left;">
+                                                        <h2>
+                                                            <a href="javascript:void(0);" class="slds-text-link--reset">
+                                                                <span class="slds-text-heading--small" style="font-size: 1.3rem;">Selected Products</span>
+                                                            </a>
+                                                        </h2>
+                                                    </div>
+                                                    <div class="slds-no-flex">
+                                                        <apex:commandButton value="{!IF(showSaveAndDone, 'Reset All Flighting', 'Save & Flight')}" action="{!saveAndFlight}" reRender="error_message_panel, Product_Result_Container, search_panel" title="Save & Flight" styleclass="slds-button slds-button--neutral slds-button--small" status="loading" oncomplete="init();"></apex:commandButton>
+                                                        <apex:commandButton value="Save & Done" action="{!saveAndDone}" reRender="error_message_panel, oli_panel" title="Save & Done" styleclass="slds-button slds-button--neutral slds-button--small" rendered="{!showSaveAndDone}" status="loading" oncomplete="init();"></apex:commandButton>
+                                                        <apex:commandButton value="Delete All Products" action="{!removeAllSelectedProduct}" onclick="if( !confirm('Are you sure?') ){return false;}" status="loading" reRender="oli_panel" styleclass="slds-button slds-button--neutral slds-button--small" onComplete="init();"/>
+                                                    </div>
+                                                </header>
+                                            </div>
+                                            <div class="slds-card__body slds-p-around--xx-small" style="background: white;border-top: 1px solid #d8dde6;">
+                                                <apex:variable value="{!0}" var="oli_index"/>
+                                                <apex:repeat value="{!lstOLIs}" var="oliwrap">
+                                                    <fieldset class="slds-form--compound">
+                                                        <div class="slds-form-element__group">
+                                                            <div class="slds-form-element__row">
+                                                                <div class="slds-p-right--xx-small slds-size--12-of-12">
+                                                                    <div class="slds-card" style="background-color: #d8dde6; border-color: #d8dde6;">
+                                                                        <div class="slds-card__header slds-grid" style="padding-top: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #d8dde6;margin-bottom:0;">
+                                                                            <header class="slds-media slds-media--center slds-has-flexi-truncate">
+                                                                                <div class="slds-media__figure">
+                                                                                    <svg aria-hidden="true" class="slds-icon slds-icon-standard-product slds-icon--small">
+                                                                                        <use xlink:href="/assets/icons/standard-sprite/svg/symbols.svg#product"></use>
+                                                                                    </svg>
+                                                                                </div>
+                                                                                <div class="slds-media__body slds-truncate">
+                                                                                    <h2>
+                                                                                        <a href="javascript:void(0);" class="slds-text-link--reset">
+                                                                                            <span class="slds-text-heading--medium"><apex:outputText value="{!oliwrap.Product2Name}"/></span>
+                                                                                        </a>
+                                                                                    </h2>
+                                                                                </div>
+
+                                                                                <div class="slds-no-flex">
+                                                                                    <apex:commandButton value="Reset Flight" action="{!resetProductFlight}" status="loading" reRender="error_message_panel, oli_panel" styleclass="slds-button slds-button--neutral slds-button--small" onComplete="init();" rendered="{!showSaveAndDone}">
+                                                                                        <apex:param value="{!oli_index}" assignTo="{!productIndexToDelete}" name="resetFlightId"/>
+                                                                                    </apex:commandButton>
+                                                                                    <apex:outputLink value="javascript:void(0);" onclick="if( confirm('Are you sure?') ){removeSelectedProduct({!oli_index});}else{ return false; } ">
+                                                                                        <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/delete_60.png')}" class="slds-icon slds-icon--x-medium slds-icon-text-default"/>
+                                                                                    </apex:outputLink>
+                                                                                </div>
+                                                                            </header>
+                                                                        </div>
+                                                                        <div class="slds-card__body" style="background: white;">
+
+                                                                            <apex:outputPanel styleClass="slds-error-incorrect-revenue {!IF(oliwrap.hasRevenueError, 'slds-show', 'slds-hide')}" layout="block">
+                                                                                <div class="slds-form-element__row" style="margin-bottom: 0px;">
+                                                                                    <div class="slds-p-right--xx-small slds-size--1-of-1">
+                                                                                        <div class="slds-notify_container" style="position: relative;z-index:0;">
+                                                                                            <div class="slds-notify slds-notify--alert slds-theme--error slds-theme--alert-texture" role="alert">
+                                                                                                <span class="slds-assistive-text">Error</span>
+                                                                                                <h2>Please adjust your flighting so that all months have a positive Amount</h2>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </apex:outputPanel>
+
+                                                                            <div class="slds-form-element__row slds-p-around--small" style="margin-bottom: 0px;">
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-6">
+                                                                                    <label class="slds-form-element__label" for="input-02">Total Price</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Total_Price__c}" styleClass="slds-input slds-input__totalprice number-only"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-6">
+                                                                                    <label class="slds-form-element__label" for="input-02">Per Unit Price</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.UnitPrice}" styleClass="slds-input slds-input__unitprice number-only"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-6">
+                                                                                    <label class="slds-form-element__label slds-label--product-quantity" for="input-02">
+                                                                                        <apex:outputText value="{!IF( OR(oliwrap.oliObj.Pricing_Method__c = 'CPC', oliwrap.oliObj.Pricing_Method__c = 'CPCV'), 'Clicks', 'Impressions' )}"/>
+                                                                                    </label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Quantity}" styleClass="slds-input slds-input__quantity number-only" required="false"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-6">
+                                                                                    <label class="slds-form-element__label" for="input-02">Pricing Method</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Pricing_Method__c}" styleClass="slds-select slds-select-pricing-method"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-6">
+                                                                                    <label class="slds-form-element__label" for="input-02">Start Date</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.ServiceDate}" styleClass="slds-input" required="false"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-6">
+                                                                                    <label class="slds-form-element__label" for="input-02">End Date</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Campaign_End_Date__c}" styleClass="slds-input" required="false"/>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="slds-form-element__row slds-p-around--small" style="margin-bottom: 0px;padding-top: 0px;">
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-5">
+                                                                                    <label class="slds-form-element__label" for="input-02">Position</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Position__c}" styleClass="slds-select" required="false"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-5">
+                                                                                    <label class="slds-form-element__label" for="input-02">Dimensions</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Dimensions__c}" styleClass="slds-input" required="false"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-5">
+                                                                                    <label class="slds-form-element__label" for="input-02">Objective</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Objective__c}" styleClass="slds-select" required="false"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-5">
+                                                                                    <label class="slds-form-element__label" for="input-02">Tier</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Tier__c}" styleClass="slds-select" required="false"/>
+                                                                                </div>
+                                                                                <div class="slds-p-right--xx-small slds-size--1-of-5">
+                                                                                    <label class="slds-form-element__label" for="input-02">Line Description</label>
+                                                                                    <apex:inputField value="{!oliwrap.oliObj.Description}" styleClass="slds-input"/>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <apex:outputPanel id="oli_schedule_panel" rendered="{!AND(showSaveAndDone, !ISNULL(oliwrap.oliSchedules), oliwrap.oliSchedules.size > 0 )}">
+                                                                                <table class="slds-table slds-table--bordered slds-table--cell-buffer">
+                                                                                    <thead>
+                                                                                        <tr class="slds-text-title--caps">
+                                                                                            <th scope="col">
+                                                                                                <div class="slds-truncate" title="Schedule Month/Year">Schedule Month/Year</div>
+                                                                                            </th>
+                                                                                            <th scope="col">
+                                                                                                <div class="slds-truncate" title="Quantity">Quantity</div>
+                                                                                            </th>
+                                                                                            <th scope="col">
+                                                                                                <div class="slds-truncate" title="Amount">Amount</div>
+                                                                                            </th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        <apex:variable value="{!1}" var="oliSchedule_index"/>
+                                                                                        <apex:repeat value="{!oliwrap.oliSchedules}" var="oliSchedule">
+                                                                                            <tr>
+                                                                                                <th scope="row" data-label="Opportunity Name">
+                                                                                                    <div class="slds-truncate">
+                                                                                                        <apex:outputText value="{0,date,MM/yyyy}">
+                                                                                                            <apex:param value="{!oliSchedule.ScheduleDate}" />
+                                                                                                        </apex:outputText>
+                                                                                                    </div>
+                                                                                                </th>
+                                                                                                <td data-label="Quantity">
+                                                                                                    <apex:outputField value="{!oliSchedule.Quantity}" styleClass="slds-input"/>
+                                                                                                </td>
+                                                                                                <td data-label="Amount">
+                                                                                                    
+                                                                                                    <apex:inputField value="{!oliSchedule.Revenue}" rendered="{!oliSchedule_index != oliwrap.oliSchedules.size}" styleClass="slds-input slds-input__olischedule_amount number-only"/>
+                                                                                                    
+                                                                                                    <apex:outputText id="slds-output__olischedule_amount_readonly" value="{0, Number, Currency}" rendered="{!oliSchedule_index == oliwrap.oliSchedules.size}" styleClass="slds-input slds-output__olischedule_amount_readonly" style="background:#d8dde6;{!IF(oliwrap.hasRevenueError, 'border:3px solid red;', '')}">
+                                                                                                        <apex:param value="{!oliSchedule.Revenue}"/>
+                                                                                                    </apex:outputText>
+
+                                                                                                    <!--<apex:outputField value="{!oliSchedule.Revenue}" rendered="{!oliSchedule_index == oliwrap.oliSchedules.size}" id="slds-output__olischedule_amount_readonly" styleClass="slds-input slds-output__olischedule_amount_readonly"/>-->
+
+                                                                                                    <apex:inputField value="{!oliSchedule.Revenue}" rendered="{!oliSchedule_index == oliwrap.oliSchedules.size}" styleClass="slds-input slds-input__olischedule_amount_readonly slds-hide"/>
+                                                                                                    
+                                                                                                    <!--<apex:outputText value="{0, Number, Currency}">
+                                                                                                        <apex:param value="{!oliSchedule.Quantity * oliwrap.oliObj.UnitPrice}"/>
+                                                                                                    </apex:outputText>-->
+                                                                                                    <apex:variable value="{!oliSchedule_index+1}" var="oliSchedule_index"/>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        </apex:repeat>
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </apex:outputPanel>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </fieldset>
+                                                    <apex:variable value="{!oli_index+1}" var="oli_index"/>
+                                                </apex:repeat>
+                                            </div>
+                                            <div class="slds-card__footer" style="text-align: center;">
+                                                
+                                            </div>
+                                        </div>
+                                    </apex:outputPanel>
+                                </apex:outputPanel> 
+                            </apex:outputPanel>
+                        </apex:outputPanel>
+                    </apex:outputPanel>
+                </div>
+                
+                <apex:actionFunction name="removeSelectedProduct" status="loading" action="{!removeSelectedProduct}" reRender="oli_panel" onComplete="init();">
+                    <apex:param assignTo="{!productIndexToDelete}" name="indexToRemove" value=""/>
+                </apex:actionFunction>
+
+
+                <apex:actionFunction name="fetchOpportunities" action="{!sortProducts}" reRender="Product_Table_Panel, buttons_panel" status="loading">
+                    <apex:param assignTo="{!sortByField}" name="sortByField" value=""/>
+                    <apex:param assignTo="{!sortByOrder}" name="sortByOrder" value=""/>
+                </apex:actionFunction>
+            </apex:form>
+            
+            <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+            <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+            
+            <script>
+                $( function() {
+                    $( ".resizable-panel" ).resizable({
+                        handles: 'n, s'
+                    });
+
+                    $("body").on("click", ".slds-select--all-product", function(){
+                        if( $(this).is(":checked") ){   
+                            $(".slds-select--product:not(:disabled)").prop("checked", true);
+                        }else{
+                            $(".slds-select--product:not(:disabled)").prop("checked", false);
+                        }
+                    });
+
+                    $("body").on("click", ".slds-select--product", function(){
+                        if( $(".slds-select--product:checked").length == $(".slds-select--product").length ){
+                            $(".slds-select--all-product").prop("checked", true);
+                        }else{
+                            $(".slds-select--all-product").prop("checked", false);
+                        }
+                    });
+
+                    $("body").on("change", ".slds-select-pricing-method", function(){
+                        var selectedVal = $(this).val();
+
+                        var unitPrice = $(this).parent().parent().find(".slds-input__unitprice").val().replace(',', '');;
+                        var totalPrice = $(this).parent().parent().find(".slds-input__totalprice").val().replace(',', '');;
+                        var pricingMethod = selectedVal;
+                        var Quantity = 0;
+                            
+                        if( selectedVal == "CPM" || selectedVal == "vCPM" ){
+                            $(this).parent().parent().find(".slds-label--product-quantity").text("Impressions");
+                            Quantity = Math.round( totalPrice / unitPrice )*1000;
+                        }else if(selectedVal == "CPC" || selectedVal == "CPCV" ){
+                            $(this).parent().parent().find(".slds-label--product-quantity").text("Clicks");
+                            Quantity = Math.round( totalPrice / unitPrice );
+                        }else{
+                            $(this).parent().parent().find(".slds-label--product-quantity").text("Impressions");
+                            Quantity = Math.round( totalPrice / unitPrice )*1000;
+                        }
+
+                        $(this).parent().parent().find(".slds-input__quantity").val( Quantity );
+                    });
+
+                    //slds-input__totalprice, slds-input__unitprice, slds-input__quantity
+                    $("body").on("keyup", ".slds-input__totalprice", function(){
+                        var totalPrice = $(this).val();
+                        var unitPrice = $(this).parent().parent().find(".slds-input__unitprice").val();
+                        totalPrice = totalPrice.replace(',', '');
+                        unitPrice = unitPrice.replace(',', '');
+                        if( totalPrice.trim() != "" && unitPrice.trim() != "" && !isNaN(totalPrice) && !isNaN(unitPrice) ){
+                            var pricingMethod = $(this).parent().parent().find(".slds-select-pricing-method").val();
+                            var Quantity = 0;
+                            if( pricingMethod == "" || pricingMethod == "CPM" || pricingMethod == "vCPM"){
+                                Quantity = Math.round( totalPrice / unitPrice )*1000;
+                            }else{
+                                Quantity = Math.round( totalPrice / unitPrice );
+                            }
+
+                            $(this).parent().parent().find(".slds-input__quantity").val( Quantity );
+                        }else{
+                            $(this).parent().parent().find(".slds-input__quantity").val('');
+                        }
+                    });
+
+                    $("body").on("keyup", ".slds-input__unitprice", function(){
+                        var unitPrice = $(this).val();
+                        var totalPrice = $(this).parent().parent().find(".slds-input__totalprice").val();
+                        totalPrice = totalPrice.replace(',', '');
+                        unitPrice = unitPrice.replace(',', '');
+                        if( totalPrice.trim() != "" && unitPrice.trim() != "" && !isNaN(totalPrice) && !isNaN(unitPrice) ){
+                            var pricingMethod = $(this).parent().parent().find(".slds-select-pricing-method").val();
+                            var Quantity = 0;
+                            if( pricingMethod == "" || pricingMethod == "CPM" || pricingMethod == "vCPM"){
+                                Quantity = Math.round( totalPrice / unitPrice )*1000;
+                            }else{
+                                Quantity = Math.round( totalPrice / unitPrice );
+                            }
+
+                            $(this).parent().parent().find(".slds-input__quantity").val( Quantity );
+                        }else{
+                            $(this).parent().parent().find(".slds-input__quantity").val('');
+                        }
+                    });
+
+                    $("#THE_PAGE\\:THE_FORM").submit(function(e) {
+                        e.preventDefault();
+                    });
+
+                    $("body").on("keydown", ".slds-input__keywork-search, .slds-filter-input-text", function( event ){
+                        if( event.which == 13 ){
+                            $(".slds-button__search_products").trigger("click");
+                            return false;
+                        }
+                    });
+
+                    $("body").on("blur", ".slds-input__olischedule_amount", function(){
+                        var totalPrice = 0;
+                        var elementOLI = $(this).closest(".slds-card__body").find(".slds-input__totalprice");
+                        var oliTotalPrice = $(elementOLI).val();
+
+                        $(this).parent().parent().parent().find(".slds-input__olischedule_amount").each(function(){
+                           //console.log('Price: '+$(this).val() );
+                           totalPrice += parseFloat( $(this).val() );
+                        });
+                        var lastOLISchedule = $(this).parent().parent().parent().find("[id*='slds-output__olischedule_amount_readonly']");
+                        var lastAmount = parseFloat( $( lastOLISchedule ).text().replace('$', '') );
+
+                        console.log('Total Price: '+ totalPrice);
+
+                        if( totalPrice <= oliTotalPrice ){
+                            $( lastOLISchedule ).text( '$'+( oliTotalPrice - totalPrice ) );
+                            $(this).parent().parent().parent().find(".slds-input__olischedule_amount_readonly").val( ( oliTotalPrice - totalPrice ) );
+                            $( lastOLISchedule ).css('border', '');
+                            $(this).closest(".slds-card__body").find(".slds-error-incorrect-revenue").addClass('slds-hide').removeClass('slds-show');
+                        }else if( totalPrice > oliTotalPrice ){
+                            $( lastOLISchedule ).text( '($'+parseFloat( totalPrice - oliTotalPrice )+')' );
+                            $(this).parent().parent().parent().find(".slds-input__olischedule_amount_readonly").val( -( totalPrice - oliTotalPrice ) );
+                            $( lastOLISchedule ).css('border', '3px solid red');
+                            $(this).closest(".slds-card__body").find(".slds-error-incorrect-revenue").removeClass('slds-hide').addClass('slds-show');
+                        }
+
+                        /*if( lastAmount < 0 && ( totalPrice - ( lastAmount ) > oliTotalPrice ) ){
+                            $( lastOLISchedule ).text( '$'+( oliTotalPrice - ( totalPrice - ( lastAmount ) ) ) );
+                            $( lastOLISchedule ).parent().css('border', '3px solid red').css('color', 'red');
+                        }else{
+                            $( lastOLISchedule ).text( '$'+( oliTotalPrice - ( totalPrice - ( lastAmount ) ) ) );
+                            $( lastOLISchedule ).parent().css('border', '3px solid red').css('color', 'red');
+                        }
+
+                        console.log('Last Price: '+ lastAmount);
+                        console.log('Total Price + Last Price: '+ ( totalPrice + lastAmount ) );
+                        totalPrice += lastAmount;
+                        
+                        console.log('OLI Total Price: '+ oliTotalPrice);
+                        if( oliTotalPrice < totalPrice ){
+                            if(  lastAmount - ( totalPrice - oliTotalPrice ) >= 0 ){
+                                $( lastOLISchedule ).text( '$'+( lastAmount - ( totalPrice - oliTotalPrice ) ) );
+                            }else{
+                                $( lastOLISchedule ).text( '$'+( totalPrice - oliTotalPrice ) );
+                                $( lastOLISchedule ).parent().css('border', '3px solid red').css('color', 'red');
+                            }
+                        }else{
+                            $( lastOLISchedule ).text( '$'+( oliTotalPrice - oliTotalPrice ) );
+                            $( lastOLISchedule ).parent().css('border', '').css('red', '');
+                        }*/
+                    });
+
+                    /*$("body").on("keypress", ".number-only", function(e) {
+                        if(isNaN(this.value+""+String.fromCharCode(e.charCode))) return false;
+                    }).on("cut copy paste",function(e){
+                        e.preventDefault();
+                    });*/
+
+                });
+                
+                function reorderProducts( orderByField, this_parent ){
+                    if( $( this_parent ).parent().hasClass('slds-is-sorted--asc') || $( this_parent ).parent().hasClass('slds-is-sorted--desc') ){
+                        if( $( this_parent ).parent().hasClass('slds-is-sorted--asc') ){
+                            fetchOpportunities( orderByField, 'desc' );
+                        }else{
+                            fetchOpportunities( orderByField, 'asc' );
+                        }
+                    }else{
+                        fetchOpportunities( orderByField, 'asc' );
+                    }
+                }
+
+                function updateOperators(){
+                    //console.log('inside updateOperators ');
+                    $(".slds-select--fields-options").each(function(){
+                        //console.log('This: '+$(this)+'\tValue: '+$(this).val());
+                        //console.log('options: '+$(this).parent().parent().find(".slds-select--operator-options").attr("id"));
+                        if( $(this).val() != ""){
+                            updateOperator ( document.getElementById( $(this).attr('id') ), $(this).parent().parent().find(".slds-select--operator-options").attr("id") );
+                        }
+                    });
+                }
+            </script>
+
+            <apex:outputPanel id="script_panel">
+                <script>
+                    function init(){
+                        $(".dateFormat").remove();
+
+                        if( $(".slds-select--product:checked").length == $(".slds-select--product").length ){
+                            $(".slds-select--all-product").prop("checked", true);
+                        }else{
+                            $(".slds-select--all-product").prop("checked", false);
+                        }
+                    }
+                </script>
+            </apex:outputPanel>
+            
+            
+            <!-- Standard Salesforce Product Search Page Filter Javascript -->
+            <script>
+            
+                var type2ops = new Array();
+                type2ops['Text'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['MultiLineText'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['HtmlMultiLineText'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['SimpleNamespace'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['Phone'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['Fax'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['Email'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['Url'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['Content'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['SfdcEncryptedText'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['EncryptedText'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['AutoNumber'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['CurrencyCode'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['StringPlusClob'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['HtmlStringPlusClob'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['InetAddress'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['AddressState'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['AddressCountry'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['Boolean'] = ['e', 'n'];
+                type2ops['Currency'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['Integer'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['Double'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['Percent'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['DateTime'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['TimeOnly'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['DateOnly'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['Birthday'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['DueDate'] = ['e', 'n', 'l', 'g', 'm', 'h'];
+                type2ops['EntityId'] = ['e', 'n', 's'];
+                type2ops['RecordType'] = ['e', 'n'];
+                type2ops['Division'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['DataCategoryGroupReference'] = ['e', 'n'];
+                type2ops['EnumOrId'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['StaticEnum'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['DynamicEnum'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['MultiEnum'] = ['e', 'n', 'u', 'x'];
+                type2ops['TextEnum'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['BitVector'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                type2ops['Address'] = ['w', 'y'];
+                type2ops['Location'] = ['w', 'y'];
+                type2ops['ExternalId'] = ['e', 'n', 'l', 'g', 'm', 'h', 'c', 'k', 's', 'i'];
+                var value2ops = new Array();
+                value2ops['Topics'] = ['u', 'x'];
+                var val2type = new Array();
+                val2type['PriceBook2.Name'] = 'Text';
+                val2type['PriceBook2.IsActive'] = 'Boolean';
+                val2type['Product2.Name'] = 'Text';
+                val2type['Product2.ProductCode'] = 'Text';
+                val2type['Product2.Family'] = 'DynamicEnum';
+                val2type['PricebookEntry.ListPrice'] = 'Currency';
+                val2type['PricebookEntry.UseStandardPrice'] = 'Boolean';
+                val2type['PricebookEntry.IsActive'] = 'Boolean';
+                val2type['Product2.Description'] = 'MultiLineText';
+                //val2type['HAS_DEF_QTY_SCHEDULE'] = 'Boolean';
+                //val2type['HAS_DEF_REV_SCHEDULE'] = 'Boolean';
+                val2type['PricebookEntry.CreatedDate'] = 'DateTime';
+                val2type['PricebookEntry.LastModifiedDate'] = 'DateTime';
+                val2type['Product2.CreatedBy.Alias'] = 'Text';
+                val2type['Product2.LastModifiedBy.Alias'] = 'Text';
+                val2type['Product2.IsActive'] = 'Boolean';
+                val2type['Product2.QuantityScheduleType'] = 'StaticEnum';
+                val2type['Product2.QuantityInstallmentPeriod'] = 'StaticEnum';
+                val2type['Product2.NumberOfQuantityInstallments'] = 'Integer';
+                val2type['Product2.RevenueScheduleType'] = 'StaticEnum';
+                val2type['Product2.RevenueInstallmentPeriod'] = 'StaticEnum';
+                val2type['Product2.NumberOfRevenueInstallments'] = 'Integer';
+                val2type['Product2.Provider_Account__c'] = 'Switchable_PersonName';
+                var oppLabels = new Array();
+                oppLabels['e'] = 'equals';
+                oppLabels['n'] = 'not equal to';
+                oppLabels['s'] = 'starts with';
+                oppLabels['c'] = 'contains';
+                oppLabels['k'] = 'does not contain';
+                oppLabels['l'] = 'less than';
+                oppLabels['g'] = 'greater than';
+                oppLabels['m'] = 'less or equal';
+                oppLabels['h'] = 'greater or equal';
+                oppLabels['u'] = 'includes';
+                oppLabels['x'] = 'excludes';
+                oppLabels['w'] = 'within';
+                var allOperators = ['e', 'n', 's', 'c', 'k', 'l', 'g', 'm', 'h', 'u', 'x', 'w'];
+                var noneLabel;
+                
+                function updateOperator(sel, opSelName, lookupName) {
+                    var selObj = document.getElementById(opSelName);
+                    /*if (selObj.offsetWidth > 0) {
+                        selObj.style.width = selObj.offsetWidth + 'px';
+                    }*/
+                    if (noneLabel == null && selObj.options[0].value.length == 0) noneLabel = selObj.options[0].text;
+                    var ops = null;
+                    var val = sel.options[sel.selectedIndex];
+                    if (val) ops = type2ops[val2type[val.value]];
+                    if (val.value in value2ops) ops = value2ops[val.value];
+                    if (ops == null) ops = allOperators;
+                    var currSelected = selObj.options[selObj.selectedIndex];
+                    selObj.length = 0;
+                    var off = 0;
+                    if (noneLabel != null) {
+                        off = 1;
+                        selObj.options[0] = new Option(noneLabel, '');
+                        if (currSelected.value == '') {
+                            selObj.options[0].selected = true;
+                        }
+                    }
+                    for (var i = 0; i < ops.length; i++) {
+                        var label = oppLabels[ops[i]];
+                        if (label == null) continue;
+                        var option = new Option(oppLabels[ops[i]], ops[i]);
+                        selObj.options[i + off] = option;
+                        if (currSelected != null && currSelected.value == option.value) {
+                            option.selected = true;
+                        }
+                    }
+                    if (lookupName) {
+                        if (val.value == 'Case.BusinessHours' || val.value != 'MEMBER_STATUS' && val.value != 'CAMPAIGN_MEMBER.STATUS' && val.value != 'Lead.CampaignMemberStatus' && val2type[val.value] == 'StaticEnum' || val2type[val.value] == 'DynamicEnum' || val2type[val.value] == 'EnumOrId' || val2type[val.value] == 'Division' || val2type[val.value] == 'RecordType' || val2type[val.value] == 'Boolean') document.getElementById(lookupName).style.display = '';
+                        else document.getElementById(lookupName).style.display = 'none';
+                    }
+                }
+            </script>
+        </body>
+    </html>
+</apex:page>

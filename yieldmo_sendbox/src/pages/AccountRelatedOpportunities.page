@@ -1,0 +1,321 @@
+<apex:page StandardController="Account" extensions="AccountRelatedOpportunitiesController" standardStylesheets="false" showHeader="false" applyHtmlTag="false" id="THE_PAGE">
+    <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+        <head>
+            <apex:stylesheet value="{!URLFOR($Resource.slds_scopped_yieldmo, 'assets/styles/salesforce-lightning-design-system-vf.css')}" />
+
+            <style type="text/css">
+                .textalign {
+                    text-align: center;
+                }
+                
+                 ::-webkit-scrollbar {
+                    width: 6px;
+                    height: 8px;
+                }
+                
+                 ::-webkit-scrollbar-track-piece {
+                    background-color: #a8b7c7;
+                    border-radius: 20px;
+                }
+                
+                 ::-webkit-scrollbar-thumb:vertical {
+                    height: 30px;
+                    background-color: #e0e5ee;
+                    border-radius: 20px;
+                }
+                
+                .requiredInput {
+                    height: 34px !important;
+                    margin: 2px;
+                }
+            </style>
+
+        </head>
+        <body>
+            <apex:form id="form">
+                <div class="yieldmo">
+
+                    <apex:actionstatus id="fetching">
+                        <apex:facet name="start">
+                            <div class="waitingSearchDiv" id="el_loading" style="z-index:1;position: fixed;top:0;background-color: black; height:100%;opacity:0.5;width:100%;">
+                                <div class="slds-grid slds-grid--align-center" style="height:100vh;">
+                                    <div class="slds-align-middle slds-col--padded">
+                                        <center>
+                                            <div class="slds-spinner--medium" aria-hidden="false" role="alert">
+                                                <img src="{!URLFOR($Resource.slds_scopped_yieldmo, '/assets/images/spinners/slds_spinner_brand.gif')}" />
+                                            </div>
+                                        </center>
+                                        <span style="color:white;">Please Wait</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </apex:facet>
+                    </apex:actionstatus>
+                    
+                    <apex:outputPanel id="pbTable_container">
+                        <div class="slds-card slds-card--opportunities">
+                            <div class="slds-card__header slds-grid">
+                            
+                            
+                            
+                              <div class="slds-col">
+                                <header class="slds-media slds-media--center slds-has-flexi-truncate">
+                                    <div class="slds-media__figure">
+                                        <svg aria-hidden="true" class="slds-icon slds-icon-standard-opportunity slds-icon--small">
+                                            <use xlink:href="{!URLFOR($Resource.slds_scopped_yieldmo, '/assets/icons/standard-sprite/svg/symbols.svg#opportunity')}"></use>
+                                        </svg>
+                                    </div>
+                                    <div class="slds-media__body slds-truncate">
+                                        <h2>
+                                            <!--<a href="javascript:void(0);" class="slds-text-link--reset">   -->
+                                                <span class="slds-text-heading--small">Related Opportunities</span>
+                                            <!-- </a> -->
+                                        </h2>
+                                    </div>
+                                    
+                                </header>
+                              </div>
+                              <div class="slds-col">
+                                  <div class="slds-media slds-media--center" style="display: inline-block;text-align: center;">
+                                        <apex:commandButton styleClass="slds-button slds-button--neutral" style="margin-left: 86px;"  value="New Opportunity" rerender="from" onClick="redirectFun(); return false;"/>
+                                  </div>   
+                              </div>
+                              <div class="slds-col"></div>
+                             <script>
+                                 function redirectFun()
+                                 {
+                                     window.top.location.href = "/006/e?retURL="+'%2f'+'{!Account.Id}';
+                                 }
+                             </script>
+                            </div>
+
+                            <div class="slds-card__body">
+                                <apex:outputPanel rendered="{!OR( ISNULL(LstOpportunities), LstOpportunities.size == 0)}">
+                                    <div class="slds-notify_container" style="position: initial;">
+                                        <div class="slds-notify slds-notify--alert slds-theme--alert-texture" role="alert">
+                                            <span class="slds-assistive-text">Info</span>
+                                            <h2>No related opportunities found.</h2>
+                                        </div>
+                                    </div>
+                                </apex:outputPanel>
+                            
+                                <apex:outputPanel id="pbTable_body" rendered="{!AND( !ISNULL(LstOpportunities), LstOpportunities.size != 0)}">
+                                    <table class="slds-table slds-table--bordered slds-table--fixed-layout" style="border: 1px solid #d8dde6;">
+                                        <thead>
+                                            <tr class="slds-text-title--caps">
+                                                <th scope="col" align="center" style="width: 80px;">Action</th>
+                                                
+                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'Name', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'Name', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-sort="ascending" aria-label="Opportunity Name">
+                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderOpportunities( 'Name', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                        <span class="slds-assistive-text">Sort </span>
+                                                        <span class="slds-truncate" title="Opportunity Name">Opportunity Name</span>
+                                                        
+                                                        <apex:outputPanel rendered="{!sortByField == 'Name'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel rendered="{!sortByField != 'Name'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                        </apex:outputPanel>
+
+                                                        
+                                                    </apex:outputLink>
+                                                </th>
+                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'StageName', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'StageName', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="Stage Name">
+                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderOpportunities( 'StageName', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                        <span class="slds-assistive-text">Sort </span>
+                                                        <span class="slds-truncate" title="Stage Name">Stage</span>
+                                                        
+                                                        <apex:outputPanel rendered="{!sortByField == 'StageName'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel rendered="{!sortByField != 'StageName'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                        </apex:outputPanel>
+                                                        
+                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                    </apex:outputLink>
+                                                </th>
+                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'Amount', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'Amount', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="Amount" style="width: 120px;">
+                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderOpportunities( 'Amount', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                        <span class="slds-assistive-text">Sort </span>
+                                                        <span class="slds-truncate" title="Account Name">Amount</span>
+                                                        
+                                                        <apex:outputPanel rendered="{!sortByField == 'Amount'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel rendered="{!sortByField != 'Amount'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                        </apex:outputPanel>
+                                                        
+                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                    </apex:outputLink>
+                                                </th>
+                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'CloseDate', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'CloseDate', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="Close Date" style="width: 110px;">
+                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderOpportunities( 'CloseDate', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                        <span class="slds-assistive-text">Sort </span>
+                                                        <span class="slds-truncate" title="Close Date">Close Date</span>
+                                                        
+                                                        <apex:outputPanel rendered="{!sortByField == 'CloseDate'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel rendered="{!sortByField != 'CloseDate'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                        </apex:outputPanel>
+                                                        
+                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                    </apex:outputLink>
+                                                </th>
+                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'IO_Campaign_Start_Date__c', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'IO_Campaign_Start_Date__c', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="IO Campaign Start Date">
+                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderOpportunities( 'IO_Campaign_Start_Date__c', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                        <span class="slds-assistive-text">Sort </span>
+                                                        <span class="slds-truncate" title="IO Campaign Start Date">IO Campaign Start Date</span>
+                                                        
+                                                        <apex:outputPanel rendered="{!sortByField == 'IO_Campaign_Start_Date__c'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel rendered="{!sortByField != 'IO_Campaign_Start_Date__c'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                        </apex:outputPanel>
+                                                        
+                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                    </apex:outputLink>
+                                                </th>
+                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'IO_Campaign_End_Date__c', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'IO_Campaign_End_Date__c', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="IO Campaign End Date">
+                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderOpportunities( 'IO_Campaign_End_Date__c', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                        <span class="slds-assistive-text">Sort </span>
+                                                        <span class="slds-truncate" title="IO Campaign End Date">IO Campaign End Date</span>
+                                                        
+                                                        <apex:outputPanel rendered="{!sortByField == 'IO_Campaign_End_Date__c'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel rendered="{!sortByField != 'IO_Campaign_End_Date__c'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                        </apex:outputPanel>
+                                                        
+                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                    </apex:outputLink>
+                                                </th>
+                                                <th class="slds-is-sortable slds-is-resizable {!IF(AND( JSENCODE(sortByField) == 'Agency__c', JSENCODE(sortByOrder) == 'asc' ), 'slds-is-sorted slds-is-sorted--asc', '')} {!IF(AND( JSENCODE(sortByField) == 'Agency__c', JSENCODE(sortByOrder) == 'desc' ), 'slds-is-sorted slds-is-sorted--desc', '')}" scope="col" aria-label="Agency Name">
+                                                    <apex:outputLink value="javascript:void(0);" onclick="reorderOpportunities( 'Agency__c', this );" styleclass="slds-th__action slds-text-link--reset">
+                                                        <span class="slds-assistive-text">Sort </span>
+                                                        <apex:outputPanel styleClass="slds-truncate" title="Account Name" rendered="{!accObj.RecordType.DeveloperName == 'Agency'}">
+                                                            Account Name
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel styleClass="slds-truncate" title="Agency Name" rendered="{!accObj.RecordType.DeveloperName != 'Agency'}">
+                                                            Agency Name
+                                                        </apex:outputPanel>
+                                                        
+                                                        <apex:outputPanel rendered="{!sortByField == 'Agency__c'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon"/>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel rendered="{!sortByField != 'Agency__c'}" layout="none">
+                                                            <img src="{!URLFOR($Resource.slds_scopped_yieldmo,'/assets/icons/utility/arrowdown_60.png')}" class="slds-icon slds-icon--x-small slds-icon-text-default slds-is-sortable__icon slds-link-icon-hide slds-hide"/>
+                                                        </apex:outputPanel>
+                                                        
+                                                        <span class="slds-assistive-text" aria-live="assertive" aria-atomic="true"></span>
+                                                    </apex:outputLink>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <apex:repeat value="{!LstOpportunities}" var="oppObj">
+                                                <tr class="slds-hint-parent">
+                                                    <th scope="row" data-label="Opportunity Name">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate" title="Edit">
+                                                            <apex:outputLink value="/{!oppObj.Id}/e?retURL={!oppObj.AccountId}" target="_parent">Edit</apex:outputLink> 
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                    <th scope="row" data-label="Opportunity Name">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate" title="{!oppObj.Name}">
+                                                            <!--<apex:outputField value="{!oppObj.Name}" title="{!oppObj.Name}"/>-->
+                                                             <apex:outputLink value="/{!oppObj.Id}?retURL={!oppObj.AccountId}" target="_parent">{!oppObj.Name}</apex:outputLink>
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                    <th scope="row" data-label="Stage Name">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                            <apex:outputField value="{!oppObj.StageName}"/>
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                    <th scope="row" data-label="Amount">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                            <apex:outputField value="{!oppObj.Amount}"/>
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                    <th scope="row" data-label="Close Date">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                            <apex:outputField value="{!oppObj.CloseDate}"/>
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                    <th scope="row" data-label="IO Campaign Start Date">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                            <apex:outputField value="{!oppObj.IO_Campaign_Start_Date__c}"/>
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                    <th scope="row" data-label="IO Campaign End Date">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate">
+                                                            <apex:outputField value="{!oppObj.IO_Campaign_End_Date__c}"/>
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                    <th scope="row" data-label="Agency Name">
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate" rendered="{!accObj.RecordType.DeveloperName != 'Agency'}"> 
+                                                            <apex:outputLink value="/{!oppObj.Agency__c}?retURL={!oppObj.AccountId}" target="_parent">{!oppObj.Agency__r.Name}</apex:outputLink>
+                                                        </apex:outputPanel>
+                                                        <apex:outputPanel layout="block" styleClass="slds-truncate" rendered="{!accObj.RecordType.DeveloperName == 'Agency'}"> 
+                                                            <apex:outputLink value="/{!oppObj.AccountId}?retURL={!oppObj.AccountId}" target="_parent">{!oppObj.Account.Name}</apex:outputLink>
+                                                        </apex:outputPanel>
+                                                    </th>
+                                                </tr>
+                                            </apex:repeat>
+                                        </tbody>
+                                    </table>
+                                </apex:outputPanel>
+                            </div>
+                            <div class="slds-card__footer" style="text-align: center;">
+                                <apex:outputPanel id="numberofrecords_panel"> 
+                                    <span class="slds-float--left">
+                                        <apex:outputText value="{!CurrentRecordCount}" rendered="{!AND( !ISNULL(LstOpportunities), LstOpportunities.size != 0)}"/>
+                                    </span>
+                                </apex:outputPanel>
+
+                                <apex:outputPanel id="buttons_panel">
+                                    <apex:commandButton action="{!first}" value="First" reRender="pbTable_body, buttons_panel, numberofrecords_panel, numberofpages_panel" title="First Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasPrevious }" status="fetching"></apex:commandButton>
+                                    <apex:commandButton action="{!previous}" value="Previous" reRender="pbTable_body, buttons_panel, numberofrecords_panel, numberofpages_panel" title="Previous Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasPrevious}" status="fetching"></apex:commandButton>
+                                    <apex:commandButton action="{!next}" value="Next" reRender="pbTable_body, buttons_panel, numberofrecords_panel, numberofpages_panel" title="Next Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasNext}" status="fetching"></apex:commandButton>
+                                    <apex:commandButton action="{!last}" value="Last" reRender="pbTable_body, buttons_panel, numberofrecords_panel, numberofpages_panel" title="Last Page" styleclass="slds-button slds-button--neutral slds-button--small" disabled="{!!hasNext}" status="fetching"></apex:commandButton>
+                                </apex:outputPanel>
+                                
+                                <apex:outputPanel id="numberofpages_panel">
+                                    <span class="slds-float--right">
+                                        <apex:outputText value="Page {!pageNumber} of {!NumberOfPages}" rendered="{!AND( !ISNULL(LstOpportunities), LstOpportunities.size != 0)}"/>
+                                    </span>
+                                </apex:outputPanel>
+                            </div>
+                        </div>
+                    </apex:outputPanel>
+                </div>
+                <apex:includeScript value="{!URLFOR($Resource.slds_scopped_yieldmo,'assets/js/jquery3.1.1.js')}" />
+
+                <script>
+
+                function reorderOpportunities( orderByField, this_parent ){
+                    if( $( this_parent ).parent().hasClass('slds-is-sorted--asc') || $( this_parent ).parent().hasClass('slds-is-sorted--desc') ){
+                        if( $( this_parent ).parent().hasClass('slds-is-sorted--asc') ){
+                            fetchOpportunities( orderByField, 'desc' );
+                        }else{
+                            fetchOpportunities( orderByField, 'asc' );
+                        }
+                    }else{
+                        fetchOpportunities( orderByField, 'asc' );
+                    }
+                }
+                </script>
+
+                <apex:actionFunction name="fetchOpportunities" action="{!init}" reRender="pbTable_body, buttons_panel" status="fetching">
+                    <apex:param assignTo="{!sortByField}" name="sortByField" value=""/>
+                    <apex:param assignTo="{!sortByOrder}" name="sortByOrder" value=""/>
+                </apex:actionFunction>
+            </apex:form>
+        </body>
+    </html>
+</apex:page>
